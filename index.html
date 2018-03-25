@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>SVG Fun</title>
+</head>
+<style>
+	rect {
+		transition: all 10s ease-in-out;
+	}
+	#stage {
+		background-color: #000;
+	}
+</style>
+<body>
+	<svg id="stage" width="700" height="700"></svg>
+
+	<script>
+		const r = document.getElementById('sq');
+		const CANVAS_SIZE = 700;
+		const THRESHOLD = 200;
+		const TRIGGER_SPEED = 100;
+		const RENDER_SPEED = 1000;
+
+		const getRandomPos = () => -Math.ceil(Math.random() * THRESHOLD);
+		const getRandomSize = () => Math.ceil(Math.random() * 50);
+		const getRandomHex = () => Math.round(0xffffff * Math.random()).toString(16);
+
+		function renderItem() {
+			const svgns = "http://www.w3.org/2000/svg";
+			const stage = document.getElementById('stage');
+
+			const item = document.createElementNS(svgns, 'rect');
+			item.setAttributeNS(null, 'x', getRandomPos());
+			item.setAttributeNS(null, 'y', getRandomPos());
+
+			const size = getRandomSize();
+			item.setAttributeNS(null, 'width', size);
+			item.setAttributeNS(null, 'height', size);	
+			item.setAttributeNS(null, 'stroke', `#${getRandomHex()}`);
+			item.setAttributeNS(null, 'fill', `transparent`);
+
+			stage.appendChild(item);
+
+			return item;
+		}
+
+		function renderItems(nr = 0) {
+			let idx = 0;
+			function _render() {
+				if (idx >= nr) return;
+
+				setTimeout(() => {
+					const item = renderItem();
+					run(item);
+					idx++;
+					_render();
+				}, RENDER_SPEED);
+			}
+
+			_render();
+		}
+
+		function run(item) {
+			if (!item) return;
+
+			const style = `
+				transform: translate(${CANVAS_SIZE + THRESHOLD}px, ${CANVAS_SIZE + THRESHOLD}px) rotate(300deg) ;
+			`
+			setTimeout(() => {
+				item
+					.setAttribute('style', style);
+			}, TRIGGER_SPEED);
+		}
+
+		renderItems(1000);
+		run();
+
+	</script>
+</body>
+</html>
