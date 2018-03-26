@@ -7,12 +7,25 @@
 	rect {
 		transition: all 10s ease-in-out;
 	}
+
+	circle {
+		transition: all 1s ease-in-out;
+	}
 	#stage {
 		background-color: #000;
+	}
+
+	#score {
+		top: 15px;
+		position: absolute;
+		color: white;
+		left: 15px;
 	}
 </style>
 <body>
 	<svg id="stage" width="700" height="700"></svg>
+	<div id="score"></div>
+	<div></div>
 
 	<script>
 		const CANVAS_SIZE = 700;
@@ -20,30 +33,104 @@
 		const TRIGGER_SPEED = 100;
 		const RENDER_SPEED = 1000;
 
+		let space = [];
+		let bullets = [];
+		let rocksCreated = 0;
+		let score = 0;
+
 		const getRandomPos = () => -Math.ceil(Math.random() * THRESHOLD);
 		const getRandomSize = () => Math.ceil(Math.random() * 50);
 		const getRandomHex = () => Math.round(0xffffff * Math.random()).toString(16);
+		const svgns = "http://www.w3.org/2000/svg";
+		const stage = document.getElementById('stage');	
 
-		function renderItem() {
-			const svgns = "http://www.w3.org/2000/svg";
-			const stage = document.getElementById('stage');
+		renderRocks(1000);
+		infiniteLoop();
 
-			const item = document.createElementNS(svgns, 'rect');
-			item.setAttributeNS(null, 'x', getRandomPos());
-			item.setAttributeNS(null, 'y', getRandomPos());
+		function breakRock(rock) {
+			const width = parseInt(rock.getAttribute('width'));
+			const x = rock.getBoundingClientRect().x;
+			const y = rock.getBoundingClientRect().y;
 
-			const size = getRandomSize();
-			item.setAttributeNS(null, 'width', size);
-			item.setAttributeNS(null, 'height', size);	
-			item.setAttributeNS(null, 'stroke', `#${getRandomHex()}`);
-			item.setAttributeNS(null, 'fill', `transparent`);
+			const newWidth = Math.ceil(width / 2);
 
+			const rock1 = renderItem(newWidth, x - 20, y + 20);
+			const rock2 = renderItem(newWidth, x + 20, y - 20);
+
+			run(rock1);
+			run(rock2);
+
+			document.getElementById('stage').removeChild(rock);
+		}
+
+		const handleShoot = e => {
+			if (e.target.tagName === 'rect') return;
+			shoot(attachBullet(e.x, e.y));
+		}
+		const debouncedShoot = debounce(handleShoot, 100);
+		document.body.onclick = handleShoot;
+
+		function attachBullet(x, y) {
+			const item = document.createElementNS(svgns, 'circle');
+			item.setAttributeNS(null, 'cx', x);
+			item.setAttributeNS(null, 'cy', y);
+			item.setAttributeNS(null, 'r', 5);
+			item.setAttributeNS(null, 'fill', 'red');
+			
 			stage.appendChild(item);
+
+			bullets.push(item);
 
 			return item;
 		}
 
-		function renderItems(nr = 0) {
+		function cleanSpace() {
+			const rocksInStage = [];
+			space.forEach(rock => {
+				if (rock.getBoundingClientRect().x > CANVAS_SIZE || rock.getBoundingClientRect().y > CANVAS_SIZE) {
+					stage.removeChild(rock);
+				} else {
+					rocksInStage.push(rock);
+				}
+			});
+
+			space = rocksInStage;
+		}
+
+
+		function cleanBullets() {
+			const bulletsInStage = [];
+			bullets.forEach(rock => {
+				if (rock.getBoundingClientRect().x < -CANVAS_SIZE || rock.getBoundingClientRect().y < -CANVAS_SIZE) {
+					stage.removeChild(rock);
+				} else {
+					bulletsInStage.push(rock);
+				}
+			});
+
+			bullets = bulletsInStage;
+		}
+
+		function renderItem(sizeGiven, xGiven, yGiven) {
+			const item = document.createElementNS(svgns, 'rect');
+			item.setAttributeNS(null, 'x', xGiven || getRandomPos());
+			item.setAttributeNS(null, 'y', yGiven || getRandomPos());
+
+			const size = sizeGiven || getRandomSize();
+			item.setAttributeNS(null, 'width', size);
+			item.setAttributeNS(null, 'height', size);	
+			item.setAttributeNS(null, 'stroke', `#${getRandomHex()}`);
+			item.setAttributeNS(null, 'fill', `gray`);
+
+			stage.appendChild(item);
+
+			rocksCreated++;
+			space.push(item);
+
+			return item;
+		}
+
+		function renderRocks(nr = 0) {
 			let idx = 0;
 			function _render() {
 				if (idx >= nr) return;
@@ -59,11 +146,22 @@
 			_render();
 		}
 
+		function shoot(bullet) {
+			if (!bullet) return;
+				
+			const x = bullet.getBoundingClientRect().x;	
+			const style = `
+				transform: translateY(${x - 2000}px);
+			`;
+
+			bullet.setAttribute('style', style);
+		}
+
 		function run(item) {
 			if (!item) return;
 
 			const style = `
-				transform: translate(${CANVAS_SIZE + THRESHOLD}px, ${CANVAS_SIZE + THRESHOLD}px) rotate(300deg) ;
+				transform: translate(${CANVAS_SIZE + THRESHOLD}px, ${CANVAS_SIZE + THRESHOLD}px);
 			`
 			setTimeout(() => {
 				item
@@ -71,8 +169,60 @@
 			}, TRIGGER_SPEED);
 		}
 
-		renderItems(1000);
-		run();
+		function intersectRect(r1, r2) {
+		    var r1 = r1.getBoundingClientRect();    //BOUNDING BOX OF THE FIRST OBJECT
+		    var r2 = r2.getBoundingClientRect();    //BOUNDING BOX OF THE SECOND OBJECT
+		 
+		    //CHECK IF THE TWO BOUNDING BOXES OVERLAP
+		  return !(r2.left > r1.right || 
+		           r2.right < r1.left || 
+		           r2.top > r1.bottom ||
+		           r2.bottom < r1.top);
+		}
+
+		function checkIfHit() {
+			for (rock of space) {
+				for (bullet of bullets) {
+					if (intersectRect(bullet, rock)) {
+						if (!rock.wasHit) {
+							score++;
+						}
+						rock.wasHit = true;
+						breakRock(rock);
+					}
+				}
+			}
+		}
+
+		function debounce(func, wait, immediate) {
+			var timeout;
+			return function() {
+				var context = this, args = arguments;
+				var later = function() {
+					timeout = null;
+					if (!immediate) func.apply(context, args);
+				};
+				var callNow = immediate && !timeout;
+				clearTimeout(timeout);
+				timeout = setTimeout(later, wait);
+				if (callNow) func.apply(context, args);
+			};
+		};
+
+		function renderScore() {
+			document.getElementById('score').innerText = `${score} points`;
+		}
+
+		function infiniteLoop(){
+			setInterval(() => {
+				cleanSpace();
+				cleanBullets();
+
+				renderScore();
+
+				checkIfHit();
+			}, 10);
+		} 
 
 	</script>
 </body>
