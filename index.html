@@ -67,7 +67,6 @@
 			if (e.target.tagName === 'rect') return;
 			shoot(attachBullet(e.x, e.y));
 		}
-		const debouncedShoot = debounce(handleShoot, 100);
 		document.body.onclick = handleShoot;
 
 		function attachBullet(x, y) {
@@ -193,21 +192,6 @@
 				}
 			}
 		}
-
-		function debounce(func, wait, immediate) {
-			var timeout;
-			return function() {
-				var context = this, args = arguments;
-				var later = function() {
-					timeout = null;
-					if (!immediate) func.apply(context, args);
-				};
-				var callNow = immediate && !timeout;
-				clearTimeout(timeout);
-				timeout = setTimeout(later, wait);
-				if (callNow) func.apply(context, args);
-			};
-		};
 
 		function renderScore() {
 			document.getElementById('score').innerText = `${score} points`;
