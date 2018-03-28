@@ -13,3 +13,7 @@ Try it out on [Codepen](https://codepen.io/andrei-cacio/pen/vRWNWK)
 
 Simply open the [index.html](./index.html) in the browser
 
+## Browser support
+
+Tested it on Chrome and Safari. Firefox gives me a hard time and IE/Edge haven't even dared (yet).
+
