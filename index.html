@@ -11,6 +11,9 @@
 	circle {
 		transition: all 1s ease-in-out;
 	}
+	#rocket{
+		transition: none;
+	}
 	#stage {
 		background-color: #000;
 	}
@@ -21,10 +24,22 @@
 		color: white;
 		left: 15px;
 	}
+
+	#dev {
+		position: absolute;
+		top: 15px;
+		right: 224px;
+		color: green;
+	}
+
+	#dev.hide { display: none; }
+	#dev.show { display: block; }
 </style>
 <body>
-	<svg id="stage" width="700" height="700"></svg>
+	<svg id="stage" width="700" height="700" onmousemove="moveRocket(evt)">
+	</svg>
 	<div id="score"></div>
+	<div id="dev" class="show"></div>
 	<div></div>
 
 	<script>
@@ -32,11 +47,13 @@
 		const THRESHOLD = 200;
 		const TRIGGER_SPEED = 100;
 		const RENDER_SPEED = 1000;
+		const ROCKET_WIDTH = 20;
 
 		let space = [];
 		let bullets = [];
 		let rocksCreated = 0;
 		let score = 0;
+		let rocket;
 
 		const getRandomPos = () => -Math.ceil(Math.random() * THRESHOLD);
 		const getRandomSize = () => Math.ceil(Math.random() * 50);
@@ -46,26 +63,53 @@
 
 		renderRocks(1000);
 		infiniteLoop();
+		addRocket();
+		rocketHit();
+
+		function addRocket(){
+			const item = document.createElementNS(svgns, 'circle');
+			item.setAttributeNS(null, 'cx', 100);
+			item.setAttributeNS(null, 'cy', 600);
+			item.setAttributeNS(null, 'r', ROCKET_WIDTH);
+			item.setAttributeNS(null, 'fill', 'green');
+			item.setAttributeNS(null, 'id', 'rocket');
+
+			stage.appendChild(item);
+			rocket = item;
+		}
+
+		function moveRocket(e) {
+      		const x = e.clientX;
+			rocket.setAttributeNS(null, 'cx', x);
+  		}
+
+		function rocketHit(){
+
+		}
 
 		function breakRock(rock) {
 			const width = parseInt(rock.getAttribute('width'));
-			const x = rock.getBoundingClientRect().x;
-			const y = rock.getBoundingClientRect().y;
+			if(width > 10){
+				const x = rock.getBoundingClientRect().x;
+				const y = rock.getBoundingClientRect().y;
 
-			const newWidth = Math.ceil(width / 2);
+				const newWidth = Math.ceil(width / 2);
 
-			const rock1 = renderItem(newWidth, x - 20, y + 20);
-			const rock2 = renderItem(newWidth, x + 20, y - 20);
+				const rock1 = renderItem(newWidth, x - 20, y + 20);
+				const rock2 = renderItem(newWidth, x + 20, y - 20);
 
-			run(rock1);
-			run(rock2);
+				run(rock1);
+				run(rock2);
+			}
 
 			document.getElementById('stage').removeChild(rock);
 		}
 
 		const handleShoot = e => {
 			if (e.target.tagName === 'rect') return;
-			shoot(attachBullet(e.x, e.y));
+			const x = rocket.getBoundingClientRect().x + ROCKET_WIDTH/2;
+			const y= rocket.getBoundingClientRect().y - ROCKET_WIDTH/2;
+			shoot(attachBullet(x, y));
 		}
 		document.body.onclick = handleShoot;
 
@@ -197,8 +241,37 @@
 			document.getElementById('score').innerText = `${score} points`;
 		}
 
+		const D_KEY = 68;
+		let isDevMode = true;
+		function devMode() {
+			const rocksCount = `${space.length} rocks`;
+			const bulletsCount = `${bullets.length} bullets`;
+
+			document.getElementById('dev').innerText = `${rocksCount} | ${bulletsCount}
+			(press D to hide)`;
+		}
+
+		document.onkeyup = e => {
+			if (e.keyCode === D_KEY) {
+				if (isDevMode) {
+					isDevMode = false;
+					document.getElementById('dev').classList.remove('show');
+					document.getElementById('dev').classList.add('hide');
+				} else {
+					document.getElementById('dev').classList.remove('hide');
+					document.getElementById('dev').classList.add('show');
+					isDevMode = true;
+				}
+			}
+		};
+
 		function infiniteLoop(){
 			setInterval(() => {
+
+				if (isDevMode) {
+					devMode();
+				}
+
 				cleanSpace();
 				cleanBullets();
 
