@@ -4,6 +4,10 @@
 	<title>SVG Fun</title>
 </head>
 <style>
+	body {
+		background-color: black;
+		background-image: url(space-bg.jpeg);
+	}
 	rect {
 		transition: all 10s ease-in-out;
 	}
@@ -20,6 +24,7 @@
 	}
 	#stage {
 		background-color: #000;
+		background-image: url(space-bg.jpeg);
 	}
 
 	#score {
@@ -79,8 +84,10 @@
 		let score = 0;
 		let rocket;
 
-		const getRandomPos = () => -Math.ceil(Math.random() * THRESHOLD);
-		const getRandomSize = () => Math.ceil(Math.random() * 50);
+		const getRandomPos = () => -Math.floor(Math.random() * THRESHOLD);
+		const getRandomPosRange = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+
+		const getRandomSize = () => Math.floor(Math.random() * 50);
 		const getRandomHex = () => Math.round(0xffffff * Math.random()).toString(16);
 		const svgns = "http://www.w3.org/2000/svg";
 		const stage = document.getElementById('stage');	
@@ -88,7 +95,6 @@
 		renderRocks(1000);
 		infiniteLoop();
 		addRocket();
-		rocketHit();
 
 		function addRocket(){
 			const r = document.getElementById('rocket');
@@ -104,10 +110,6 @@
       		const x = e.clientX;
 			rocket.setAttributeNS(null, 'x', x - 30);
   		}
-
-		function rocketHit(){
-
-		}
 
 		function breakRock(rock) {
 			const width = parseInt(rock.getAttribute('width'));
@@ -129,6 +131,7 @@
 
 		const handleShoot = e => {
 			if (e.target.tagName === 'rect') return;
+			
 			const x = rocket.getBoundingClientRect().x + ROCKET_WIDTH/2;
 			const y= rocket.getBoundingClientRect().y - ROCKET_WIDTH/2;
 			shoot(attachBullet(x+10, y));
@@ -178,14 +181,20 @@
 
 		function renderItem(sizeGiven, xGiven, yGiven) {
 			const item = document.createElementNS(svgns, 'rect');
-			item.setAttributeNS(null, 'x', xGiven || getRandomPos());
-			item.setAttributeNS(null, 'y', yGiven || getRandomPos());
 
+			if (xGiven && yGiven) {
+				item.setAttributeNS(null, 'x', xGiven);
+				item.setAttributeNS(null, 'y', yGiven);
+			} else {
+				item.setAttributeNS(null, 'x', getRandomPosRange(0, CANVAS_SIZE));
+				item.setAttributeNS(null, 'y', getRandomPos());
+			}
+			
+			
 			const size = sizeGiven || getRandomSize();
 			item.setAttributeNS(null, 'width', size);
 			item.setAttributeNS(null, 'height', size);	
 			item.setAttributeNS(null, 'stroke', `#${getRandomHex()}`);
-			item.setAttributeNS(null, 'fill', `gray`);
 
 			stage.appendChild(item);
 
@@ -226,7 +235,7 @@
 			if (!item) return;
 
 			const style = `
-				transform: translate(${CANVAS_SIZE + THRESHOLD}px, ${CANVAS_SIZE + THRESHOLD}px);
+				transform: translate(${item.getAttribute('x')}px, ${CANVAS_SIZE + THRESHOLD}px);
 			`
 			setTimeout(() => {
 				item
@@ -237,7 +246,7 @@
 		function intersectRect(r1, r2) {
 		    var r1 = r1.getBoundingClientRect();    //BOUNDING BOX OF THE FIRST OBJECT
 		    var r2 = r2.getBoundingClientRect();    //BOUNDING BOX OF THE SECOND OBJECT
-		 
+			
 		    //CHECK IF THE TWO BOUNDING BOXES OVERLAP
 		  return !(r2.left > r1.right || 
 		           r2.right < r1.left || 
@@ -245,15 +254,27 @@
 		           r2.bottom < r1.top);
 		}
 
+		function destroyBullet(bullet) {
+			bullet.setAttributeNS(null, 'cx', -CANVAS_SIZE - 10);
+			bullet.setAttributeNS(null, 'cy', -CANVAS_SIZE - 10);
+			bullet.style = 'transition: none;'
+		}
+
 		function checkIfHit() {
 			for (rock of space) {
 				for (bullet of bullets) {
+					if (intersectRect(rocket, rock)) {
+						console.log('destroyed');
+					}
+					
+
 					if (intersectRect(bullet, rock)) {
 						if (!rock.wasHit) {
 							score++;
 						}
 						rock.wasHit = true;
 						breakRock(rock);
+						destroyBullet(bullet);
 					}
 				}
 			}
