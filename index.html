@@ -15,6 +15,18 @@
 	circle {
 		transition: all 1s ease-in-out;
 	}
+
+	#rocket.destroyed {
+		animation: destroyAnimation 1s ease-in-out;
+		animation-iteration-count: 3;
+	}
+
+	@keyframes destroyAnimation {
+		0% { opacity: 1; }
+		50% { opacity: 0;}
+		100% { opacity: 1; }
+	}
+
 	#rocket{
 		transition: none;
 		transform: rotate(-45);
@@ -131,6 +143,7 @@
 
 		const handleShoot = e => {
 			if (e.target.tagName === 'rect') return;
+			if (rocket.regenerating) return;
 			
 			const x = rocket.getBoundingClientRect().x + ROCKET_WIDTH/2;
 			const y= rocket.getBoundingClientRect().y - ROCKET_WIDTH/2;
@@ -222,7 +235,7 @@
 
 		function shoot(bullet) {
 			if (!bullet) return;
-				
+		
 			const x = bullet.getBoundingClientRect().x;	
 			const style = `
 				transform: translateY(${x - 2000}px);
@@ -260,14 +273,23 @@
 			bullet.style = 'transition: none;'
 		}
 
+		function rocketHit() {
+			score = 0;
+			rocket.classList.add('destroyed');
+			rocket.regenerating = true;
+			setTimeout(() => {
+				rocket.regenerating = false;
+				rocket.classList.remove('destroyed');
+			}, 3000);
+		}
+
 		function checkIfHit() {
 			for (rock of space) {
-				for (bullet of bullets) {
-					if (intersectRect(rocket, rock)) {
-						console.log('destroyed');
-					}
-					
+				if (!rocket.regenerating && intersectRect(rocket, rock)) {
+					rocketHit();
+				}
 
+				for (bullet of bullets) {
 					if (intersectRect(bullet, rock)) {
 						if (!rock.wasHit) {
 							score++;
@@ -281,7 +303,10 @@
 		}
 
 		function renderScore() {
-			document.getElementById('score').innerText = `${score} points`;
+			const scoreView = `${score} points`;
+
+			if (document.getElementById('score').innerText !== scoreView) 
+				document.getElementById('score').innerText = `${score} points`;
 		}
 
 		const D_KEY = 68;
