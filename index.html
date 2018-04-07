@@ -7,6 +7,7 @@
 	body {
 		background-color: black;
 		background-image: url(space-bg.jpeg);
+		cursor: none;
 	}
 	rect {
 		transition: all 10s ease-in-out;
@@ -46,9 +47,16 @@
 		left: 15px;
 	}
 
+	#high-score {
+		top: 40px;
+		position: absolute;
+		color: yellow;
+		left: 15px;
+	}
+
 	#dev {
 		position: absolute;
-		top: 40px;
+		top: 80px;
 		left: 15px;
 		color: green;
 	}
@@ -60,6 +68,7 @@
 	<svg id="stage" width="700" height="700" onmousemove="moveRocket(evt)">
 	</svg>
 	<div id="score"></div>
+	<div id="high-score"></div>
 	<div id="dev" class="show"></div>
 
 	<svg id="rocket" width=30 height=100 xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 64 64" version="1.1">
@@ -192,6 +201,18 @@
 			bullets = bulletsInStage;
 		}
 
+		function getPrize(rock) {
+			const size = parseInt(rock.getAttribute('width'));
+			
+			if (size > 40) return 1;
+			if (size > 30) return 2;
+			if (size > 20) return 3;
+			if (size > 10) return 5;
+			if (size < 10) return 10;
+
+			return 1;
+		}
+
 		function renderItem(sizeGiven, xGiven, yGiven) {
 			const item = document.createElementNS(svgns, 'rect');
 
@@ -274,6 +295,12 @@
 		}
 
 		function rocketHit() {
+			const highScore = localStorage.getItem('highScore');
+
+			if (score > highScore) {
+				localStorage.setItem('highScore', score);
+			}
+
 			score = 0;
 			rocket.classList.add('destroyed');
 			rocket.regenerating = true;
@@ -287,12 +314,13 @@
 			for (rock of space) {
 				if (!rocket.regenerating && intersectRect(rocket, rock)) {
 					rocketHit();
+					breakRock(rock);
 				}
 
 				for (bullet of bullets) {
 					if (intersectRect(bullet, rock)) {
 						if (!rock.wasHit) {
-							score++;
+							score += getPrize(rock);
 						}
 						rock.wasHit = true;
 						breakRock(rock);
@@ -302,11 +330,19 @@
 			}
 		}
 
+		function renderHighScore() {
+			const highScore = localStorage.getItem('highScore') || 0;
+			const highScoreView = `Top score: ${highScore} points`;
+
+			if (document.getElementById('high-score').innerText !== highScoreView)
+				document.getElementById('high-score').innerText = highScoreView;	
+		}
+
 		function renderScore() {
-			const scoreView = `${score} points`;
+			const scoreView = `Score: ${score} points`;
 
 			if (document.getElementById('score').innerText !== scoreView) 
-				document.getElementById('score').innerText = `${score} points`;
+				document.getElementById('score').innerText = scoreView;
 		}
 
 		const D_KEY = 68;
@@ -342,6 +378,8 @@
 
 				cleanSpace();
 				cleanBullets();
+
+				renderHighScore();
 
 				renderScore();
 
