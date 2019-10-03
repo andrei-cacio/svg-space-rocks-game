@@ -1,5 +1,5 @@
 # Space rocks game
-
+![img](image.png)
 ## Purpose
 Having fun with SVGs. 
 
